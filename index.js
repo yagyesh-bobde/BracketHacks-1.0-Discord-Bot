@@ -77,7 +77,8 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
         if (interaction.customId === 'getText') {
             // TODO : API CALL TO SYMBL.AI
-            let transcription = getTranscription('Test',)
+            interaction.channel.send('Transcription in progress')
+            // let transcription = getTranscription('Test',)
 
         }
     }
