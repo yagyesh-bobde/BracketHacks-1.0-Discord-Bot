@@ -1,11 +1,7 @@
 import fetch, { Headers } from 'node-fetch';
 import dotenv from 'dotenv'
-import fs from 'fs'
-import qs from 'qs'
-import axios from 'axios'
 
 dotenv.config()
-let messages = []
 
 const getAuthentication = async () => {
 
