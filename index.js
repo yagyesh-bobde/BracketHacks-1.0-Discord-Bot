@@ -1,75 +1,81 @@
-import { Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, GatewayIntentBits } from "discord.js";
-import dotenv from 'dotenv';
-import fetch from "node-fetch";
+import { Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, GatewayIntentBits, IntentsBitField } from "discord.js";
+import dotenv from 'dotenv'
+import path from 'path'
 import getTranscription from './transcripy.js'
 
+process.setMaxListeners(5)
 dotenv.config()
 
+let transcript = ''
+
 const client = new Client({
-    intents: ['Guilds', 'GuildMessages', 'DirectMessages', GatewayIntentBits.DirectMessages,
+    intents: [ 
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildBans,
-        GatewayIntentBits.GuildMessages]
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessageTyping,
+        GatewayIntentBits.DirectMessageTyping
+    ]
 })
 
 client.on('ready', () => {
     console.log(client.user.tag)
 
-    // const guildId = '1004396525528559656'
-    // const guild = client.guilds.cache.get(guildId)
-    // let commands;
-
-    // if (guild) {
-    //     commands = guild.commands;
-    // }
-    // else{
-    //     commands = client.application?.commands;
-    // }
 })
 
 client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
 
     // get the file's URL 
-    if (message.attachments.size === 0) { // Attachments are present.
-        console.log(message.attachments)
-        return message.channel.send('Please attach a audio file')
+    if (message.attachments.size === 0) { // Attachments are not present.
+         message.channel.send('Instead of a text, attach an audio file please!')
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setLabel('BracketHacks 1.0')
+                    .setURL('https://brackethacks-1.devpost.com')
+                    .setStyle(ButtonStyle.Link),
+            );
+
+        message.channel.send('Wanna learn more about this project?')
+        await message.channel.send({ ephemeral: true, content: '', components: [row] });
+        return;
     }
+    
+    let url = message.attachments.first().url
+    let ext = path.extname(url)
+    if (ext ==='.mp3' || ext ==='.wav'){
+        message.channel.send('Audio file loading...')
+        let captions = await getTranscription(url)
+        console.log(captions)
+        
+        
+        for (const i of captions) {
+            transcript = transcript + i.text
+        }
 
-    // const file = message.attachments.first()?.url;
-    // try {
-    //     message.channel.send('Reading the file! Fetching data...');
+        
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('getText')
+                    .setLabel('Get Into Text')
+                    .setStyle(ButtonStyle.Danger),
+            );
 
-    //     // fetch the file from the external URL
-    //     const response = await fetch(file);
-
-    //     // if there was an error send a message with the status
-    //     if (!response.ok)
-    //         return message.channel.send(
-    //             'There was an error with fetching the file:',
-    //             response.statusText,
-    //         );
-
-    //     // take the response stream and read it to completion
-    //     const text = await response.text();
-
-    //     if (text) {
-    //         message.channel.send(`\`\`\`${text}\`\`\``);
-    //     }
-    // } catch (error) {
-    //     console.log(error);
-    // }
+        
+        await message.channel.send({ ephemeral: true, content: '', components: [row] });
+        
+             
+    }
+        else {
+            message.channel.send("This is not an audio file!")
+            message.channel.send("Please send an audio file to get transcription")
+            return;
+        }
 
 
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('getText')
-                .setLabel('Get Into Text')
-                .setStyle(ButtonStyle.Primary),
-        );
-
-    await msg.channel.send({ ephemeral: true, content: 'Click this button to transcribe & get a reply for the audio file!', components: [row] });
 
 })
 
@@ -77,11 +83,24 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
         if (interaction.customId === 'getText') {
             // TODO : API CALL TO SYMBL.AI
-            interaction.channel.send('Transcription in progress')
-            // let transcription = getTranscription('Test',)
+
+            
+            if (transcript) { 
+                interaction.reply(`Audio Text: ${transcript}`)
+                transcript = ''
+                return;
+             }
+           else {
+                interaction.reply('It seems that transcription failed, why not send the file again!')
+           }
+            
 
         }
     }
 })
 
 client.login(process.env.BOT_TOKEN) 
+
+
+
+

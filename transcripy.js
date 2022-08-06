@@ -1,82 +1,106 @@
-import fetch from 'node-fetch';
+import fetch, { Headers } from 'node-fetch';
 import dotenv from 'dotenv'
 import fs from 'fs'
 import qs from 'qs'
-
+import axios from 'axios'
 
 dotenv.config()
-
-let accessToken;
-let conversationId;
+let messages = []
 
 const getAuthentication = async () => {
-    const fetchResponse = await fetch('https://api.symbl.ai/oauth2/token:generate', {
-        method: 'post',
-        headers: {
-            'Content-Type': "application/json",
-        },
-        body: JSON.stringify({
-            type: 'application',
-            appId: process.env.APP_ID,
-            appSecret: process.env.APP_SECRET
-        })
-    });
-    const responseBody = await fetchResponse.json();
-    if (responseBody.keys()[0]=== 'message'){
-        return -1
-    }else{
-        accessToken = responseBody.accessToken
+
+    try {
+        const fetchResponse = await fetch('https://api.symbl.ai/oauth2/token:generate', {
+            method: 'post',
+            headers: {
+                'Content-Type': "application/json",
+            },
+            body: JSON.stringify({
+                type: 'application',
+                appId: process.env.SYMBL_APP_ID,
+                appSecret: process.env.SYMBL_APP_SECRET
+            })
+        });
+        const responseBody = await fetchResponse.json();
+        // accessToken = responseBody.accessToken
+        return responseBody.accessToken;
+        
+    } catch (error) {
+        console.log(error)
     }
+    
     
 }
 
-const getConversationId = async (filename='', url) => {
-    if (getAuthentication() === -1) {
-        return 'Failed to get authentication'
-    }
-    
-    // const symblaiParams = {
-    //     'name': filename,
-    //     'url': url
-    // }
-    // const fetchResponse = await fetch('https://api.symbl.ai/v1/process/audio/url', {
-    //     method: 'post',
-    //     body: JSON.stringify(symblaiParams),
-    //     headers: {
-    //         'Authorization': `Bearer ${accessToken}`,
-    //         'Content-Type': 'application/json'
-    //     }
-    // });
+const getConversationId = async ( url) => {
+    let accessToken =  await getAuthentication()
 
-    // const responseBody = await fetchResponse.json();
-    const contentType = 'audio/mp3';
-
-    const fetchResponse = await fetch(`https://api.symbl.ai/v1/process/audio?${qs.stringify(symblaiParams)}`, {
-        method: 'post',
-        body: fs.createReadStream(filePath),
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': contentType,
+    try {
+        const body = {
+            name: "audio",
+            url: url
         }
-    });
-    const responseBody = await fetchResponse.json()
-    conversationId = responseBody.conversationId
+        const fetchResponse = await fetch('https://api.symbl.ai/v1/process/audio/url', {
+            method: 'post',
+            body: JSON.stringify(body),
+            headers: {
+                'x-api-key': `${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const responseBody = await fetchResponse.json();
+        return ({
+            accessToken: accessToken,
+            conversationId: responseBody.conversationId, 
+            jobId: responseBody.jobId
+        })
+    } catch (error) {
+        console.log(error)
+    }
 
 }
+
+const isJobDone = async (myHeaders, jobId) => {
+
+    var requestOptions = {
+        method: 'GET',
+        headers: myHeaders,
+        redirect: 'follow'
+    };
+
+   const response = await fetch(`https://api.symbl.ai/v1/job/${jobId}`, requestOptions)
+   const json = await response.json()
+   return json.status
+}
+
 
 const getTranscription = async (url) => {
-    getConversationId(url)
+    let { accessToken, conversationId, jobId } = await getConversationId(url)
 
 
-    const fetchResponse = await fetch(`https://api.symbl.ai/v1/conversations/${conversationId}/messages?sentiment=true`, {
-        method: 'get',
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+    var myHeaders = new Headers();
+    myHeaders.append("x-api-key", `${accessToken}`);
+    myHeaders.append("Authorization", `Bearer ${accessToken}`);
+
+    let status = await isJobDone(myHeaders, jobId)
+    while (status === 'in_progress'){
+        status = await isJobDone(myHeaders, jobId) 
     }
-    });
 
-    const responseBody = await fetchResponse.json();
-    console.log(responseBody)
+    var requestOptions = {
+        method: 'GET',
+        headers: myHeaders,
+        redirect: 'follow'
+    };
+
+    let reqUrl = `https://api.symbl.ai/v1/conversations/${conversationId}/messages`
+
+    const response = await  fetch( reqUrl, requestOptions)
+    const json = await response.json()
+
+    return json.messages
+    
 }
 export default getTranscription;
+
