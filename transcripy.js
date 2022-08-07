@@ -77,7 +77,7 @@ const getVideoId = async ( url) => {
 
     const fetchResponse = await fetch("https://api.symbl.ai/v1/process/video/url", requestOptions)
     const responseBody = await fetchResponse.json();
-    console.log(responseBody)
+
     return ({
         accessToken: accessToken,
         conversationId: responseBody.conversationId,
@@ -109,7 +109,6 @@ const getTranscription = async (url, audio) => {
          res = await getVideoId(url)
     }
     let { accessToken, conversationId, jobId } = res
-    console.log(accessToken, conversationId, jobId)
 
     var myHeaders = new Headers();
     myHeaders.append("x-api-key", `${accessToken}`);

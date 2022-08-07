@@ -9,7 +9,7 @@ process.setMaxListeners(5)
 dotenv.config()
 // app = express()
 let transcript = ''
-let filename = ''
+
 
 const client = new Client({
     intents: [ 
@@ -48,7 +48,6 @@ client.on("messageCreate", async (message) => {
     
     let url = message.attachments.first().url
     let ext = path.extname(url)
-    filename = url.substring(url.lastIndexOf('/') + 1).split('.')[0]
     if (ext ==='.mp3' || ext ==='.wav'){
         message.channel.send('Audio file loading...')
         let captions = await getTranscription(url, true)
