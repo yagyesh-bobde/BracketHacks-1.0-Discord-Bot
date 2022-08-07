@@ -1,12 +1,15 @@
-import { Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, GatewayIntentBits, IntentsBitField } from "discord.js";
+import { Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, GatewayIntentBits, Attachment } from "discord.js";
 import dotenv from 'dotenv'
 import path from 'path'
 import getTranscription from './transcripy.js'
+import fs from 'fs'
+// import express from 'express'
 
 process.setMaxListeners(5)
 dotenv.config()
-
+// app = express()
 let transcript = ''
+let filename = ''
 
 const client = new Client({
     intents: [ 
@@ -45,9 +48,10 @@ client.on("messageCreate", async (message) => {
     
     let url = message.attachments.first().url
     let ext = path.extname(url)
+    filename = url.substring(url.lastIndexOf('/') + 1)
     if (ext ==='.mp3' || ext ==='.wav'){
         message.channel.send('Audio file loading...')
-        let captions = await getTranscription(url)
+        let captions = await getTranscription(url, audio=true)
         console.log(captions)
         
         
@@ -69,11 +73,37 @@ client.on("messageCreate", async (message) => {
         
              
     }
-        else {
-            message.channel.send("This is not an audio file!")
-            message.channel.send("Please send an audio file to get transcription")
-            return;
+    else if (ext === '.mp4' || ext==='.mkv'){
+        message.channel.send('Video file loading...')
+        let captions = await getTranscription(url, audio = false)
+        console.log(captions)
+
+
+        for (const i of captions) {
+            transcript = transcript + i.text
         }
+        message.channel.send('File is uploading')
+        
+
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('get-text-file')
+                    .setLabel('Text File')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('get-json-file')
+                    .setLabel('Json File')
+                    .setStyle(ButtonStyle.Success)
+            );
+
+
+        await message.channel.send({ ephemeral: true, content: '', components: [row] });
+    }
+    else {
+            message.reply("The format of the file attached is not recognized, please try with another file!")
+            return;
+    }
 
 
 
@@ -93,9 +123,33 @@ client.on("interactionCreate", async (interaction) => {
            else {
                 interaction.reply('It seems that transcription failed, why not send the file again!')
            }
-            
-
-        }
+        } 
+        else if ( interaction.customId === 'get-text-file'){
+            if (transcript) {
+                fs.writeFile(`./public/text/${filename}.txt`, transcript)
+                const attachment = new Attachment(`./public/text/${filename}`)
+                interaction.reply(`Video Text: ${transcript}`, attachment)
+                transcript = ''
+                filename=''
+                return;
+            }
+            else {
+                
+                interaction.reply('It seems that transcription failed, why not send the file again!')
+        }}
+        else if ( interaction.customId === 'get-json-file'){
+            if (transcript) {
+                fs.writeFile(`./public/json/${filename}.txt`, transcript)
+                const attachment = new Attachment(`./public/json/${filename}`)
+                interaction.reply(`Video Text: ${transcript}`, attachment)
+                transcript = ''
+                filename=''
+                return;
+            }
+            else {
+                
+                interaction.reply('It seems that transcription failed, why not send the file again!')
+        }}
     }
 })
 

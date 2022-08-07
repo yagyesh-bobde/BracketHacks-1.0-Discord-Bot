@@ -28,15 +28,25 @@ const getAuthentication = async () => {
     
 }
 
-const getConversationId = async ( url) => {
+const getConversationId = async ( url, audio) => {
     let accessToken =  await getAuthentication()
 
     try {
-        const body = {
+        let body = {
             name: "audio",
             url: url
         }
-        const fetchResponse = await fetch('https://api.symbl.ai/v1/process/audio/url', {
+        
+        let host = 'https://api.symbl.ai/v1/process/audio/url'
+        if (!audio) {
+            host = 'https://api.symbl.ai/v1/process/video/url'
+            body = {
+                url: url,
+                confidenceThreshold: 0.6,
+                timezoneOffset: 0
+            }
+        }
+        const fetchResponse = await fetch(host, {
             method: 'post',
             body: JSON.stringify(body),
             headers: {
@@ -71,8 +81,8 @@ const isJobDone = async (myHeaders, jobId) => {
 }
 
 
-const getTranscription = async (url) => {
-    let { accessToken, conversationId, jobId } = await getConversationId(url)
+const getTranscription = async (url, audio) => {
+    let { accessToken, conversationId, jobId } = await getConversationId(url, audio)
 
 
     var myHeaders = new Headers();
