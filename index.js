@@ -60,6 +60,7 @@ client.on("messageCreate", async (message) => {
              
     }
     else if (ext === '.mp4' || ext==='.mkv'){
+        message.channel.send('File is uploading...')
         let captions = await getTranscription(url, false)
         console.log(captions)
 
@@ -67,7 +68,7 @@ client.on("messageCreate", async (message) => {
         for (const i of captions) {
             transcript = transcript + i.text
         }
-        message.channel.send('File is uploading')
+       
     }
     else {
         message.reply("The format of the file attached is not recognized, please try with another file!")
