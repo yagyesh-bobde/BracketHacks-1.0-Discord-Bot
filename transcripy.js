@@ -63,7 +63,7 @@ const getVideoId = async ( url) => {
     myHeaders.append("Authorization", `Bearer ${accessToken}`);
 
     var raw = JSON.stringify({
-        "url": "https://symbltestdata.s3.us-east-2.amazonaws.com/sample_video_file.mp4",
+        "url": url,
         "confidenceThreshold": 0.6,
         "timezoneOffset": 0
     });
