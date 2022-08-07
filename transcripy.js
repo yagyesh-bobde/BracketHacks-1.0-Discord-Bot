@@ -28,25 +28,16 @@ const getAuthentication = async () => {
     
 }
 
-const getConversationId = async ( url, audio) => {
+const getConversationId = async ( url) => {
     let accessToken =  await getAuthentication()
 
-    try {
+
         let body = {
             name: "audio",
             url: url
         }
         
-        let host = 'https://api.symbl.ai/v1/process/audio/url'
-        if (!audio) {
-            host = 'https://api.symbl.ai/v1/process/video/url'
-            body = {
-                url: url,
-                confidenceThreshold: 0.6,
-                timezoneOffset: 0
-            }
-        }
-        const fetchResponse = await fetch(host, {
+    const fetchResponse = await fetch('https://api.symbl.ai/v1/process/audio/url', {
             method: 'post',
             body: JSON.stringify(body),
             headers: {
@@ -56,14 +47,42 @@ const getConversationId = async ( url, audio) => {
         });
 
         const responseBody = await fetchResponse.json();
+        console.log(responseBody)
         return ({
             accessToken: accessToken,
             conversationId: responseBody.conversationId, 
             jobId: responseBody.jobId
         })
-    } catch (error) {
-        console.log(error)
-    }
+
+}
+const getVideoId = async ( url) => {
+    let accessToken =  await getAuthentication()
+    var myHeaders = new Headers();
+    myHeaders.append("x-api-key", `${accessToken}`);
+    myHeaders.append("Content-Type", "application/json");
+    myHeaders.append("Authorization", `Bearer ${accessToken}`);
+
+    var raw = JSON.stringify({
+        "url": "https://symbltestdata.s3.us-east-2.amazonaws.com/sample_video_file.mp4",
+        "confidenceThreshold": 0.6,
+        "timezoneOffset": 0
+    });
+
+    var requestOptions = {
+        method: 'POST',
+        headers: myHeaders,
+        body: raw,
+        redirect: 'follow'
+    };
+
+    const fetchResponse = await fetch("https://api.symbl.ai/v1/process/video/url", requestOptions)
+    const responseBody = await fetchResponse.json();
+    console.log(responseBody)
+    return ({
+        accessToken: accessToken,
+        conversationId: responseBody.conversationId,
+        jobId: responseBody.jobId
+    })
 
 }
 
@@ -82,8 +101,15 @@ const isJobDone = async (myHeaders, jobId) => {
 
 
 const getTranscription = async (url, audio) => {
-    let { accessToken, conversationId, jobId } = await getConversationId(url, audio)
+    let res;
+    if (audio){
+         res = await getConversationId(url)
 
+    }else{ 
+         res = await getVideoId(url)
+    }
+    let { accessToken, conversationId, jobId } = res
+    console.log(accessToken, conversationId, jobId)
 
     var myHeaders = new Headers();
     myHeaders.append("x-api-key", `${accessToken}`);
@@ -101,9 +127,9 @@ const getTranscription = async (url, audio) => {
     };
 
     let reqUrl = `https://api.symbl.ai/v1/conversations/${conversationId}/messages`
-
     const response = await  fetch( reqUrl, requestOptions)
     const json = await response.json()
+    console.log(json)
 
     return json.messages
     

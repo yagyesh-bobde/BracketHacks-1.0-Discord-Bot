@@ -48,18 +48,33 @@ client.on("messageCreate", async (message) => {
     
     let url = message.attachments.first().url
     let ext = path.extname(url)
-    filename = url.substring(url.lastIndexOf('/') + 1)
+    filename = url.substring(url.lastIndexOf('/') + 1).split('.')[0]
     if (ext ==='.mp3' || ext ==='.wav'){
         message.channel.send('Audio file loading...')
-        let captions = await getTranscription(url, audio=true)
+        let captions = await getTranscription(url, true)
         console.log(captions)
         
         
         for (const i of captions) {
             transcript = transcript + i.text
         }
+             
+    }
+    else if (ext === '.mp4' || ext==='.mkv'){
+        let captions = await getTranscription(url, false)
+        console.log(captions)
 
-        
+
+        for (const i of captions) {
+            transcript = transcript + i.text
+        }
+        message.channel.send('File is uploading')
+    }
+    else {
+        message.reply("The format of the file attached is not recognized, please try with another file!")
+        return;
+    } 
+
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -68,40 +83,8 @@ client.on("messageCreate", async (message) => {
                     .setStyle(ButtonStyle.Danger),
             );
 
-        
-        await message.channel.send({ ephemeral: true, content: '', components: [row] });
-        
-             
-    }
-    else if (ext === '.mp4' || ext==='.mkv'){
-        message.channel.send('Video file loading...')
-        let captions = await getTranscription(url, audio = false)
-        console.log(captions)
-
-
-        for (const i of captions) {
-            transcript = transcript + i.text
-        }
-        message.channel.send('File is uploading')
-        
-
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('get-text-file')
-                    .setLabel('Text File')
-                    .setStyle(ButtonStyle.Primary)
-            );
-
 
         await message.channel.send({ ephemeral: true, content: '', components: [row] });
-    }
-    else {
-            message.reply("The format of the file attached is not recognized, please try with another file!")
-            return;
-    }
-
-
 
 })
 
@@ -112,7 +95,7 @@ client.on("interactionCreate", async (interaction) => {
 
             
             if (transcript) { 
-                interaction.reply(`Audio Text: ${transcript}`)
+                interaction.reply(`Transcription Text: ${transcript}`)
                 transcript = ''
                 return;
              }
@@ -120,19 +103,7 @@ client.on("interactionCreate", async (interaction) => {
                 interaction.reply('It seems that transcription failed, why not send the file again!')
            }
         } 
-        else if ( interaction.customId === 'get-text-file'){
-            if (transcript) {
-                fs.writeFile(`./public/text/${filename}.txt`, transcript)
-                const attachment = new Attachment(`./public/text/${filename}.txt`)
-                interaction.reply(`Video Text: ${transcript}`, attachment)
-                transcript = ''
-                filename=''
-                return;
-            }
-            else {
-                
-                interaction.reply('It seems that transcription failed, why not send the file again!')
-        }}
+
     }
 })
 
