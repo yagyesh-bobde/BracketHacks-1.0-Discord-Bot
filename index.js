@@ -90,11 +90,7 @@ client.on("messageCreate", async (message) => {
                 new ButtonBuilder()
                     .setCustomId('get-text-file')
                     .setLabel('Text File')
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId('get-json-file')
-                    .setLabel('Json File')
-                    .setStyle(ButtonStyle.Success)
+                    .setStyle(ButtonStyle.Primary)
             );
 
 
@@ -127,20 +123,7 @@ client.on("interactionCreate", async (interaction) => {
         else if ( interaction.customId === 'get-text-file'){
             if (transcript) {
                 fs.writeFile(`./public/text/${filename}.txt`, transcript)
-                const attachment = new Attachment(`./public/text/${filename}`)
-                interaction.reply(`Video Text: ${transcript}`, attachment)
-                transcript = ''
-                filename=''
-                return;
-            }
-            else {
-                
-                interaction.reply('It seems that transcription failed, why not send the file again!')
-        }}
-        else if ( interaction.customId === 'get-json-file'){
-            if (transcript) {
-                fs.writeFile(`./public/json/${filename}.txt`, transcript)
-                const attachment = new Attachment(`./public/json/${filename}`)
+                const attachment = new Attachment(`./public/text/${filename}.txt`)
                 interaction.reply(`Video Text: ${transcript}`, attachment)
                 transcript = ''
                 filename=''
